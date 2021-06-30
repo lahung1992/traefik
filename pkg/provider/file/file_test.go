@@ -3,7 +3,6 @@ package file
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -27,13 +26,12 @@ type ProvideTestCase struct {
 }
 
 func TestTLSContent(t *testing.T) {
-	tempDir := createTempDir(t, "testdir")
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	fileTLS, err := createTempFile("./fixtures/toml/tls_file.cert", tempDir)
 	require.NoError(t, err)
 
-	fileConfig, err := ioutil.TempFile(tempDir, "temp*.toml")
+	fileConfig, err := os.CreateTemp(tempDir, "temp*.toml")
 	require.NoError(t, err)
 
 	content := `
@@ -76,8 +74,7 @@ func TestErrorWhenEmptyConfig(t *testing.T) {
 func TestProvideWithoutWatch(t *testing.T) {
 	for _, test := range getTestCases() {
 		t.Run(test.desc+" without watch", func(t *testing.T) {
-			provider, clean := createProvider(t, test, false)
-			defer clean()
+			provider := createProvider(t, test, false)
 			configChan := make(chan dynamic.Message)
 
 			provider.DebugLogGeneratedTemplate = true
@@ -109,8 +106,7 @@ func TestProvideWithoutWatch(t *testing.T) {
 func TestProvideWithWatch(t *testing.T) {
 	for _, test := range getTestCases() {
 		t.Run(test.desc+" with watch", func(t *testing.T) {
-			provider, clean := createProvider(t, test, true)
-			defer clean()
+			provider := createProvider(t, test, true)
 			configChan := make(chan dynamic.Message)
 
 			go func() {
@@ -244,8 +240,10 @@ func getTestCases() []ProvideTestCase {
 	}
 }
 
-func createProvider(t *testing.T, test ProvideTestCase, watch bool) (*Provider, func()) {
-	tempDir := createTempDir(t, "testdir")
+func createProvider(t *testing.T, test ProvideTestCase, watch bool) *Provider {
+	t.Helper()
+
+	tempDir := t.TempDir()
 
 	provider := &Provider{}
 	provider.Watch = true
@@ -265,7 +263,7 @@ func createProvider(t *testing.T, test ProvideTestCase, watch bool) (*Provider, 
 		var file *os.File
 		if watch {
 			var err error
-			file, err = ioutil.TempFile(tempDir, "temp*"+filepath.Ext(test.filePath))
+			file, err = os.CreateTemp(tempDir, "temp*"+filepath.Ext(test.filePath))
 			require.NoError(t, err)
 		} else {
 			var err error
@@ -276,20 +274,11 @@ func createProvider(t *testing.T, test ProvideTestCase, watch bool) (*Provider, 
 		provider.Filename = file.Name()
 	}
 
-	return provider, func() {
+	t.Cleanup(func() {
 		os.RemoveAll(tempDir)
-	}
-}
+	})
 
-// createTempDir Helper.
-func createTempDir(t *testing.T, dir string) string {
-	t.Helper()
-
-	d, err := ioutil.TempDir("", dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return d
+	return provider
 }
 
 func copyFile(srcPath, dstPath string) error {
@@ -310,7 +299,7 @@ func copyFile(srcPath, dstPath string) error {
 }
 
 func createTempFile(srcPath, tempDir string) (*os.File, error) {
-	file, err := ioutil.TempFile(tempDir, "temp*"+filepath.Ext(srcPath))
+	file, err := os.CreateTemp(tempDir, "temp*"+filepath.Ext(srcPath))
 	if err != nil {
 		return nil, err
 	}

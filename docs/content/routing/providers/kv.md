@@ -110,6 +110,15 @@ A Story of key & values
     |-----------------------------------------------------------------|-----------------------------------------|
     | `traefik/http/services/myservice/loadbalancer/servers/0/url`    | `http://<ip-server-1>:<port-server-1>/` |
 
+??? info "`traefik/http/services/<service_name>/loadbalancer/serverstransport`"
+
+    Allows to reference a ServersTransport resource that is defined either with the File provider or the Kubernetes CRD one.
+    See [serverstransport](../services/index.md#serverstransport) for more information.
+
+    | Key (Path)                                                      | Value         |
+    |-----------------------------------------------------------------|---------------|
+    | `traefik/http/services/myservice/loadbalancer/serverstransport` | `foobar@file` |
+
 ??? info "`traefik/http/services/<service_name>/loadbalancer/passhostheader`"
 
     See [pass Host header](../services/index.md#pass-host-header) for more information.
@@ -384,6 +393,14 @@ You can declare TCP Routers and/or Services using KV.
     | Key (Path)                                                        | Value |
     |-------------------------------------------------------------------|-------|
     | `traefik/tcp/services/mytcpservice/loadbalancer/terminationdelay` | `100` |
+    
+??? info "`traefik/tcp/services/<service_name>/loadbalancer/proxyprotocol/version`"
+
+    See [PROXY protocol](../services/index.md#proxy-protocol) for more information.
+
+    | Key (Path)                                                             | Value |
+    |------------------------------------------------------------------------|-------|
+    | `traefik/tcp/services/mytcpservice/loadbalancer/proxyprotocol/version` | `1`   |
 
 ??? info "`traefik/tcp/services/<service_name>/weighted/services/<n>/name`"
 

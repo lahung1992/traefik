@@ -5,13 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 
-	"github.com/Masterminds/sprig"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/traefik/paerser/file"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
@@ -27,7 +26,7 @@ var _ provider.Provider = (*Provider)(nil)
 
 // Provider holds configurations of the provider.
 type Provider struct {
-	Directory                 string `description:"Load dynamic configuration from one or more .toml or .yml files in a directory." json:"directory,omitempty" toml:"directory,omitempty" yaml:"directory,omitempty" export:"true"`
+	Directory                 string `description:"Load dynamic configuration from one or more .yml or .toml files in a directory." json:"directory,omitempty" toml:"directory,omitempty" yaml:"directory,omitempty" export:"true"`
 	Watch                     bool   `description:"Watch provider." json:"watch,omitempty" toml:"watch,omitempty" yaml:"watch,omitempty" export:"true"`
 	Filename                  string `description:"Load dynamic configuration from a file." json:"filename,omitempty" toml:"filename,omitempty" yaml:"filename,omitempty" export:"true"`
 	DebugLogGeneratedTemplate bool   `description:"Enable debug logging of generated configuration template." json:"debugLogGeneratedTemplate,omitempty" toml:"debugLogGeneratedTemplate,omitempty" yaml:"debugLogGeneratedTemplate,omitempty" export:"true"`
@@ -197,7 +196,7 @@ func flattenCertificates(ctx context.Context, tlsConfig *dynamic.TLSConfiguratio
 }
 
 func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory string, configuration *dynamic.Configuration) (*dynamic.Configuration, error) {
-	fileList, err := ioutil.ReadDir(directory)
+	fileList, err := os.ReadDir(directory)
 	if err != nil {
 		return configuration, fmt.Errorf("unable to read directory %s: %w", directory, err)
 	}
@@ -211,8 +210,9 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 				ServersTransports: make(map[string]*dynamic.ServersTransport),
 			},
 			TCP: &dynamic.TCPConfiguration{
-				Routers:  make(map[string]*dynamic.TCPRouter),
-				Services: make(map[string]*dynamic.TCPService),
+				Routers:     make(map[string]*dynamic.TCPRouter),
+				Services:    make(map[string]*dynamic.TCPService),
+				Middlewares: make(map[string]*dynamic.TCPMiddleware),
 			},
 			TLS: &dynamic.TLSConfiguration{
 				Stores:  make(map[string]tls.Store),
@@ -288,6 +288,14 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 				logger.WithField(log.RouterName, name).Warn("TCP router already configured, skipping")
 			} else {
 				configuration.TCP.Routers[name] = conf
+			}
+		}
+
+		for name, conf := range c.TCP.Middlewares {
+			if _, exists := configuration.TCP.Middlewares[name]; exists {
+				logger.WithField(log.MiddlewareName, name).Warn("TCP middleware already configured, skipping")
+			} else {
+				configuration.TCP.Middlewares[name] = conf
 			}
 		}
 
@@ -413,8 +421,9 @@ func (p *Provider) decodeConfiguration(filePath, content string) (*dynamic.Confi
 			ServersTransports: make(map[string]*dynamic.ServersTransport),
 		},
 		TCP: &dynamic.TCPConfiguration{
-			Routers:  make(map[string]*dynamic.TCPRouter),
-			Services: make(map[string]*dynamic.TCPService),
+			Routers:     make(map[string]*dynamic.TCPRouter),
+			Services:    make(map[string]*dynamic.TCPService),
+			Middlewares: make(map[string]*dynamic.TCPMiddleware),
 		},
 		TLS: &dynamic.TLSConfiguration{
 			Stores:  make(map[string]tls.Store),
@@ -436,7 +445,7 @@ func (p *Provider) decodeConfiguration(filePath, content string) (*dynamic.Confi
 
 func readFile(filename string) (string, error) {
 	if len(filename) > 0 {
-		buf, err := ioutil.ReadFile(filename)
+		buf, err := os.ReadFile(filename)
 		if err != nil {
 			return "", err
 		}

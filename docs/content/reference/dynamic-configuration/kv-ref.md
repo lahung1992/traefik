@@ -31,6 +31,7 @@
 | `traefik/http/middlewares/Middleware09/forwardAuth/authRequestHeaders/1` | `foobar` |
 | `traefik/http/middlewares/Middleware09/forwardAuth/authResponseHeaders/0` | `foobar` |
 | `traefik/http/middlewares/Middleware09/forwardAuth/authResponseHeaders/1` | `foobar` |
+| `traefik/http/middlewares/Middleware09/forwardAuth/authResponseHeadersRegex` | `foobar` |
 | `traefik/http/middlewares/Middleware09/forwardAuth/tls/ca` | `foobar` |
 | `traefik/http/middlewares/Middleware09/forwardAuth/tls/caOptional` | `true` |
 | `traefik/http/middlewares/Middleware09/forwardAuth/tls/cert` | `foobar` |
@@ -42,9 +43,10 @@
 | `traefik/http/middlewares/Middleware10/headers/accessControlAllowHeaders/1` | `foobar` |
 | `traefik/http/middlewares/Middleware10/headers/accessControlAllowMethods/0` | `foobar` |
 | `traefik/http/middlewares/Middleware10/headers/accessControlAllowMethods/1` | `foobar` |
-| `traefik/http/middlewares/Middleware10/headers/accessControlAllowOrigin` | `foobar` |
 | `traefik/http/middlewares/Middleware10/headers/accessControlAllowOriginList/0` | `foobar` |
 | `traefik/http/middlewares/Middleware10/headers/accessControlAllowOriginList/1` | `foobar` |
+| `traefik/http/middlewares/Middleware10/headers/accessControlAllowOriginListRegex/0` | `foobar` |
+| `traefik/http/middlewares/Middleware10/headers/accessControlAllowOriginListRegex/1` | `foobar` |
 | `traefik/http/middlewares/Middleware10/headers/accessControlExposeHeaders/0` | `foobar` |
 | `traefik/http/middlewares/Middleware10/headers/accessControlExposeHeaders/1` | `foobar` |
 | `traefik/http/middlewares/Middleware10/headers/accessControlMaxAge` | `42` |
@@ -126,6 +128,7 @@
 | `traefik/http/middlewares/Middleware19/replacePathRegex/regex` | `foobar` |
 | `traefik/http/middlewares/Middleware19/replacePathRegex/replacement` | `foobar` |
 | `traefik/http/middlewares/Middleware20/retry/attempts` | `42` |
+| `traefik/http/middlewares/Middleware20/retry/initialInterval` | `42` |
 | `traefik/http/middlewares/Middleware21/stripPrefix/forceSlash` | `true` |
 | `traefik/http/middlewares/Middleware21/stripPrefix/prefixes/0` | `foobar` |
 | `traefik/http/middlewares/Middleware21/stripPrefix/prefixes/1` | `foobar` |
@@ -165,6 +168,7 @@
 | `traefik/http/serversTransports/ServersTransport0/certificates/0/keyFile` | `foobar` |
 | `traefik/http/serversTransports/ServersTransport0/certificates/1/certFile` | `foobar` |
 | `traefik/http/serversTransports/ServersTransport0/certificates/1/keyFile` | `foobar` |
+| `traefik/http/serversTransports/ServersTransport0/disableHTTP2` | `true` |
 | `traefik/http/serversTransports/ServersTransport0/forwardingTimeouts/dialTimeout` | `42s` |
 | `traefik/http/serversTransports/ServersTransport0/forwardingTimeouts/idleConnTimeout` | `42s` |
 | `traefik/http/serversTransports/ServersTransport0/forwardingTimeouts/responseHeaderTimeout` | `42s` |
@@ -177,6 +181,7 @@
 | `traefik/http/serversTransports/ServersTransport1/certificates/0/keyFile` | `foobar` |
 | `traefik/http/serversTransports/ServersTransport1/certificates/1/certFile` | `foobar` |
 | `traefik/http/serversTransports/ServersTransport1/certificates/1/keyFile` | `foobar` |
+| `traefik/http/serversTransports/ServersTransport1/disableHTTP2` | `true` |
 | `traefik/http/serversTransports/ServersTransport1/forwardingTimeouts/dialTimeout` | `42s` |
 | `traefik/http/serversTransports/ServersTransport1/forwardingTimeouts/idleConnTimeout` | `42s` |
 | `traefik/http/serversTransports/ServersTransport1/forwardingTimeouts/responseHeaderTimeout` | `42s` |
@@ -203,12 +208,14 @@
 | `traefik/http/services/Service01/loadBalancer/sticky/cookie/name` | `foobar` |
 | `traefik/http/services/Service01/loadBalancer/sticky/cookie/sameSite` | `foobar` |
 | `traefik/http/services/Service01/loadBalancer/sticky/cookie/secure` | `true` |
+| `traefik/http/services/Service02/mirroring/healthCheck` | `` |
 | `traefik/http/services/Service02/mirroring/maxBodySize` | `42` |
 | `traefik/http/services/Service02/mirroring/mirrors/0/name` | `foobar` |
 | `traefik/http/services/Service02/mirroring/mirrors/0/percent` | `42` |
 | `traefik/http/services/Service02/mirroring/mirrors/1/name` | `foobar` |
 | `traefik/http/services/Service02/mirroring/mirrors/1/percent` | `42` |
 | `traefik/http/services/Service02/mirroring/service` | `foobar` |
+| `traefik/http/services/Service03/weighted/healthCheck` | `` |
 | `traefik/http/services/Service03/weighted/services/0/name` | `foobar` |
 | `traefik/http/services/Service03/weighted/services/0/weight` | `42` |
 | `traefik/http/services/Service03/weighted/services/1/name` | `foobar` |
@@ -217,8 +224,12 @@
 | `traefik/http/services/Service03/weighted/sticky/cookie/name` | `foobar` |
 | `traefik/http/services/Service03/weighted/sticky/cookie/sameSite` | `foobar` |
 | `traefik/http/services/Service03/weighted/sticky/cookie/secure` | `true` |
+| `traefik/tcp/middlewares/Middleware00/ipWhiteList/sourceRange/0` | `foobar` |
+| `traefik/tcp/middlewares/Middleware00/ipWhiteList/sourceRange/1` | `foobar` |
 | `traefik/tcp/routers/TCPRouter0/entryPoints/0` | `foobar` |
 | `traefik/tcp/routers/TCPRouter0/entryPoints/1` | `foobar` |
+| `traefik/tcp/routers/TCPRouter0/middlewares/0` | `foobar` |
+| `traefik/tcp/routers/TCPRouter0/middlewares/1` | `foobar` |
 | `traefik/tcp/routers/TCPRouter0/rule` | `foobar` |
 | `traefik/tcp/routers/TCPRouter0/service` | `foobar` |
 | `traefik/tcp/routers/TCPRouter0/tls/certResolver` | `foobar` |
@@ -232,6 +243,8 @@
 | `traefik/tcp/routers/TCPRouter0/tls/passthrough` | `true` |
 | `traefik/tcp/routers/TCPRouter1/entryPoints/0` | `foobar` |
 | `traefik/tcp/routers/TCPRouter1/entryPoints/1` | `foobar` |
+| `traefik/tcp/routers/TCPRouter1/middlewares/0` | `foobar` |
+| `traefik/tcp/routers/TCPRouter1/middlewares/1` | `foobar` |
 | `traefik/tcp/routers/TCPRouter1/rule` | `foobar` |
 | `traefik/tcp/routers/TCPRouter1/service` | `foobar` |
 | `traefik/tcp/routers/TCPRouter1/tls/certResolver` | `foobar` |
@@ -243,6 +256,7 @@
 | `traefik/tcp/routers/TCPRouter1/tls/domains/1/sans/1` | `foobar` |
 | `traefik/tcp/routers/TCPRouter1/tls/options` | `foobar` |
 | `traefik/tcp/routers/TCPRouter1/tls/passthrough` | `true` |
+| `traefik/tcp/services/TCPService01/loadBalancer/proxyProtocol/version` | `42` |
 | `traefik/tcp/services/TCPService01/loadBalancer/servers/0/address` | `foobar` |
 | `traefik/tcp/services/TCPService01/loadBalancer/servers/1/address` | `foobar` |
 | `traefik/tcp/services/TCPService01/loadBalancer/terminationDelay` | `42` |

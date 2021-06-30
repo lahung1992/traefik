@@ -75,6 +75,7 @@ http:
       mirroring:
         service: foobar
         maxBodySize: 42
+        healthCheck: {}
         mirrors:
         - name: foobar
           percent: 42
@@ -82,6 +83,7 @@ http:
           percent: 42
     Service03:
       weighted:
+        healthCheck: {}
         services:
         - name: foobar
           weight: 42
@@ -158,6 +160,7 @@ http:
         authResponseHeaders:
         - foobar
         - foobar
+        authResponseHeadersRegex: foobar
         authRequestHeaders:
         - foobar
         - foobar
@@ -176,8 +179,10 @@ http:
         accessControlAllowMethods:
         - foobar
         - foobar
-        accessControlAllowOrigin: foobar
         accessControlAllowOriginList:
+        - foobar
+        - foobar
+        accessControlAllowOriginListRegex:
         - foobar
         - foobar
         accessControlExposeHeaders:
@@ -294,6 +299,7 @@ http:
     Middleware20:
       retry:
         attempts: 42
+        initialInterval: 42
     Middleware21:
       stripPrefix:
         prefixes:
@@ -322,6 +328,7 @@ http:
         dialTimeout: 42s
         responseHeaderTimeout: 42s
         idleConnTimeout: 42s
+      disableHTTP2: true
     ServersTransport1:
       serverName: foobar
       insecureSkipVerify: true
@@ -338,10 +345,14 @@ http:
         dialTimeout: 42s
         responseHeaderTimeout: 42s
         idleConnTimeout: 42s
+      disableHTTP2: true
 tcp:
   routers:
     TCPRouter0:
       entryPoints:
+      - foobar
+      - foobar
+      middlewares:
       - foobar
       - foobar
       service: foobar
@@ -363,6 +374,9 @@ tcp:
       entryPoints:
       - foobar
       - foobar
+      middlewares:
+      - foobar
+      - foobar
       service: foobar
       rule: foobar
       tls:
@@ -378,10 +392,18 @@ tcp:
           sans:
           - foobar
           - foobar
+  middlewares:
+    Middleware00:
+      ipWhiteList:
+        sourceRange:
+        - foobar
+        - foobar
   services:
     TCPService01:
       loadBalancer:
         terminationDelay: 42
+        proxyProtocol:
+          version: 42
         servers:
         - address: foobar
         - address: foobar
