@@ -16,7 +16,7 @@
     "build:nc": "npm run build"
   },
   "dependencies": {
-    "@quasar/extras": "^1.0.0",
+    "@quasar/extras": "^1.10.8",
     "axios": "^0.21.1",
     "bowser": "^2.5.2",
     "chart.js": "^2.8.0",
