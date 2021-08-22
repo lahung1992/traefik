@@ -38,7 +38,7 @@ COPY --from=webui /src/static/ /go/src/github.com/traefik/traefik/static/
 RUN ./script/make.sh generate binary
 
 ## IMAGE
-FROM alpine:3.10
+FROM alpine:latest
 
 RUN apk --no-cache --no-progress add bash curl ca-certificates tzdata \
     && update-ca-certificates \
