@@ -1,4 +1,4 @@
-FROM node:12.18
+FROM node:12.22.1
 
 ENV WEBUI_DIR /src/webui
 ARG ARG_PLATFORM_URL=https://pilot.traefik.io
