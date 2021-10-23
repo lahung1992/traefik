@@ -1,5 +1,5 @@
 
-FROM alpine:3.10 as alpine
+FROM alpine:3.11 as alpine
 
 RUN apk --no-cache --no-progress add \
     libcurl \
