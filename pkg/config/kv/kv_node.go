@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/abronan/valkeyrie/store"
+	"github.com/kvtools/valkeyrie/store"
 	"github.com/traefik/paerser/parser"
 )
 
@@ -24,7 +24,7 @@ func DecodeToNode(pairs []*store.KVPair, rootName string, filters ...string) (*p
 			return nil, fmt.Errorf("invalid label root %s", rootName)
 		}
 
-		split := strings.Split(pair.Key[len(rootName)+1:], "/")
+		split := strings.FieldsFunc(pair.Key[len(rootName)+1:], func(c rune) bool { return c == '/' })
 
 		parts := []string{rootName}
 		for _, fragment := range split {

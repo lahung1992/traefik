@@ -34,8 +34,8 @@ type Provider struct {
 	Clusters             []string `description:"ECS Clusters name" json:"clusters,omitempty" toml:"clusters,omitempty" yaml:"clusters,omitempty" export:"true"`
 	AutoDiscoverClusters bool     `description:"Auto discover cluster" json:"autoDiscoverClusters,omitempty" toml:"autoDiscoverClusters,omitempty" yaml:"autoDiscoverClusters,omitempty" export:"true"`
 	Region               string   `description:"The AWS region to use for requests"  json:"region,omitempty" toml:"region,omitempty" yaml:"region,omitempty" export:"true"`
-	AccessKeyID          string   `description:"The AWS credentials access key to use for making requests" json:"accessKeyID,omitempty" toml:"accessKeyID,omitempty" yaml:"accessKeyID,omitempty"`
-	SecretAccessKey      string   `description:"The AWS credentials access key to use for making requests" json:"secretAccessKey,omitempty" toml:"secretAccessKey,omitempty" yaml:"secretAccessKey,omitempty"`
+	AccessKeyID          string   `description:"The AWS credentials access key to use for making requests" json:"accessKeyID,omitempty" toml:"accessKeyID,omitempty" yaml:"accessKeyID,omitempty" loggable:"false"`
+	SecretAccessKey      string   `description:"The AWS credentials access key to use for making requests" json:"secretAccessKey,omitempty" toml:"secretAccessKey,omitempty" yaml:"secretAccessKey,omitempty" loggable:"false"`
 	defaultRuleTpl       *template.Template
 }
 
@@ -151,35 +151,25 @@ func (p Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.P
 		operation := func() error {
 			awsClient, err := p.createClient(logger)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to create AWS client: %w", err)
 			}
 
-			configuration, err := p.loadECSConfig(ctxLog, awsClient)
+			err = p.loadConfiguration(ctxLog, awsClient, configurationChan)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get ECS configuration: %w", err)
 			}
 
-			configurationChan <- dynamic.Message{
-				ProviderName:  "ecs",
-				Configuration: configuration,
-			}
-
-			reload := time.NewTicker(time.Second * time.Duration(p.RefreshSeconds))
-			defer reload.Stop()
+			ticker := time.NewTicker(time.Second * time.Duration(p.RefreshSeconds))
+			defer ticker.Stop()
 
 			for {
 				select {
-				case <-reload.C:
-					configuration, err := p.loadECSConfig(ctxLog, awsClient)
+				case <-ticker.C:
+					err = p.loadConfiguration(ctxLog, awsClient, configurationChan)
 					if err != nil {
-						logger.Errorf("Failed to load ECS configuration, error %s", err)
-						return err
+						return fmt.Errorf("failed to refresh ECS configuration: %w", err)
 					}
 
-					configurationChan <- dynamic.Message{
-						ProviderName:  "ecs",
-						Configuration: configuration,
-					}
 				case <-routineCtx.Done():
 					return nil
 				}
@@ -194,6 +184,20 @@ func (p Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.P
 			logger.Errorf("Cannot connect to Provider api %+v", err)
 		}
 	})
+
+	return nil
+}
+
+func (p *Provider) loadConfiguration(ctx context.Context, client *awsClient, configurationChan chan<- dynamic.Message) error {
+	instances, err := p.listInstances(ctx, client)
+	if err != nil {
+		return err
+	}
+
+	configurationChan <- dynamic.Message{
+		ProviderName:  "ecs",
+		Configuration: p.buildConfiguration(ctx, instances),
+	}
 
 	return nil
 }
@@ -365,15 +369,6 @@ func (p *Provider) listInstances(ctx context.Context, client *awsClient) ([]ecsI
 	return instances, nil
 }
 
-func (p *Provider) loadECSConfig(ctx context.Context, client *awsClient) (*dynamic.Configuration, error) {
-	instances, err := p.listInstances(ctx, client)
-	if err != nil {
-		return nil, err
-	}
-
-	return p.buildConfiguration(ctx, instances), nil
-}
-
 func (p *Provider) lookupEc2Instances(ctx context.Context, client *awsClient, clusterName *string, ecsDatas map[string]*ecs.Task) (map[string]*ec2.Instance, error) {
 	logger := log.FromContext(ctx)
 	instanceIds := make(map[string]string)
@@ -459,7 +454,7 @@ func (p *Provider) lookupTaskDefinitions(ctx context.Context, client *awsClient,
 // chunkIDs ECS expects no more than 100 parameters be passed to a API call;
 // thus, pack each string into an array capped at 100 elements.
 func (p *Provider) chunkIDs(ids []*string) [][]*string {
-	var chuncked [][]*string
+	var chunked [][]*string
 	for i := 0; i < len(ids); i += 100 {
 		var sliceEnd int
 		if i+100 < len(ids) {
@@ -467,7 +462,7 @@ func (p *Provider) chunkIDs(ids []*string) [][]*string {
 		} else {
 			sliceEnd = len(ids)
 		}
-		chuncked = append(chuncked, ids[i:sliceEnd])
+		chunked = append(chunked, ids[i:sliceEnd])
 	}
-	return chuncked
+	return chunked
 }

@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -29,7 +28,7 @@ type K8sSuite struct{ BaseSuite }
 
 func (s *K8sSuite) SetUpSuite(c *check.C) {
 	s.createComposeProject(c, "k8s")
-	s.composeProject.Start(c)
+	s.composeUp(c)
 
 	abs, err := filepath.Abs("./fixtures/k8s/config.skip/kubeconfig.yaml")
 	c.Assert(err, checker.IsNil)
@@ -45,7 +44,7 @@ func (s *K8sSuite) SetUpSuite(c *check.C) {
 }
 
 func (s *K8sSuite) TearDownSuite(c *check.C) {
-	s.composeProject.Stop(c)
+	s.composeDown(c)
 
 	generatedFiles := []string{
 		"./fixtures/k8s/config.skip/kubeconfig.yaml",
@@ -53,11 +52,11 @@ func (s *K8sSuite) TearDownSuite(c *check.C) {
 		"./fixtures/k8s/coredns.yaml",
 		"./fixtures/k8s/rolebindings.yaml",
 		"./fixtures/k8s/traefik.yaml",
+		"./fixtures/k8s/ccm.yaml",
 	}
 
 	for _, filename := range generatedFiles {
-		err := os.Remove(filename)
-		if err != nil {
+		if err := os.Remove(filename); err != nil {
 			log.WithoutContext().Warning(err)
 		}
 	}
@@ -74,6 +73,17 @@ func (s *K8sSuite) TestIngressConfiguration(c *check.C) {
 	testConfiguration(c, "testdata/rawdata-ingress.json", "8080")
 }
 
+func (s *K8sSuite) TestIngressLabelSelector(c *check.C) {
+	cmd, display := s.traefikCmd(withConfigFile("fixtures/k8s_ingress_label_selector.toml"))
+	defer display(c)
+
+	err := cmd.Start()
+	c.Assert(err, checker.IsNil)
+	defer s.killCmd(cmd)
+
+	testConfiguration(c, "testdata/rawdata-ingress-label-selector.json", "8080")
+}
+
 func (s *K8sSuite) TestCRDConfiguration(c *check.C) {
 	cmd, display := s.traefikCmd(withConfigFile("fixtures/k8s_crd.toml"))
 	defer display(c)
@@ -83,6 +93,39 @@ func (s *K8sSuite) TestCRDConfiguration(c *check.C) {
 	defer s.killCmd(cmd)
 
 	testConfiguration(c, "testdata/rawdata-crd.json", "8000")
+}
+
+func (s *K8sSuite) TestCRDLabelSelector(c *check.C) {
+	cmd, display := s.traefikCmd(withConfigFile("fixtures/k8s_crd_label_selector.toml"))
+	defer display(c)
+
+	err := cmd.Start()
+	c.Assert(err, checker.IsNil)
+	defer s.killCmd(cmd)
+
+	testConfiguration(c, "testdata/rawdata-crd-label-selector.json", "8000")
+}
+
+func (s *K8sSuite) TestGatewayConfiguration(c *check.C) {
+	cmd, display := s.traefikCmd(withConfigFile("fixtures/k8s_gateway.toml"))
+	defer display(c)
+
+	err := cmd.Start()
+	c.Assert(err, checker.IsNil)
+	defer s.killCmd(cmd)
+
+	testConfiguration(c, "testdata/rawdata-gateway.json", "8080")
+}
+
+func (s *K8sSuite) TestIngressclass(c *check.C) {
+	cmd, display := s.traefikCmd(withConfigFile("fixtures/k8s_ingressclass.toml"))
+	defer display(c)
+
+	err := cmd.Start()
+	c.Assert(err, checker.IsNil)
+	defer s.killCmd(cmd)
+
+	testConfiguration(c, "testdata/rawdata-ingressclass.json", "8080")
 }
 
 func testConfiguration(c *check.C, path, apiPort string) {
@@ -119,14 +162,14 @@ func testConfiguration(c *check.C, path, apiPort string) {
 	newJSON, err := json.MarshalIndent(rtRepr, "", "\t")
 	c.Assert(err, checker.IsNil)
 
-	err = ioutil.WriteFile(expectedJSON, newJSON, 0o644)
+	err = os.WriteFile(expectedJSON, newJSON, 0o644)
 	c.Assert(err, checker.IsNil)
 	c.Errorf("We do not want a passing test in file update mode")
 }
 
 func matchesConfig(wantConfig string, buf *bytes.Buffer) try.ResponseCondition {
 	return func(res *http.Response) error {
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
 			return fmt.Errorf("failed to read response body: %w", err)
 		}
@@ -153,7 +196,7 @@ func matchesConfig(wantConfig string, buf *bytes.Buffer) try.ResponseCondition {
 			return err
 		}
 
-		expected, err := ioutil.ReadFile(wantConfig)
+		expected, err := os.ReadFile(wantConfig)
 		if err != nil {
 			return err
 		}

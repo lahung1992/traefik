@@ -12,9 +12,9 @@ import (
 
 func TestRecoverHandler(t *testing.T) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		panic("I love panicing!")
+		panic("I love panicking!")
 	}
-	recovery, err := New(context.Background(), http.HandlerFunc(fn), "foo-recovery")
+	recovery, err := New(context.Background(), http.HandlerFunc(fn))
 	require.NoError(t, err)
 
 	server := httptest.NewServer(recovery)

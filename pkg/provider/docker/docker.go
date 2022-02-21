@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -164,7 +165,7 @@ func (p *Provider) getClientOpts() ([]client.Opt, error) {
 
 		conf, err := p.TLS.CreateTLSConfig(ctx)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to create client TLS configuration: %w", err)
 		}
 
 		hostURL, err := client.ParseHostURL(p.Endpoint)
@@ -310,7 +311,7 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 								startStopHandle(event)
 							}
 						case err := <-errc:
-							if err == io.EOF {
+							if errors.Is(err, io.EOF) {
 								logger.Debug("Provider event stream closed")
 							}
 							return err

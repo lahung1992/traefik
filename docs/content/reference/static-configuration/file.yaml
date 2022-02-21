@@ -32,6 +32,10 @@ entryPoints:
       trustedIPs:
       - foobar
       - foobar
+    http3:
+      advertisedPort: 42
+    udp:
+      timeout: 42
     http:
       redirections:
         entryPoint:
@@ -105,13 +109,13 @@ providers:
     endpoint: foobar
     token: foobar
     certAuthFilePath: foobar
-    disablePassHostHeaders: true
     namespaces:
     - foobar
     - foobar
     labelSelector: foobar
     ingressClass: foobar
     throttleDuration: 42s
+    allowEmptyServices: true
     ingressEndpoint:
       ip: foobar
       hostname: foobar
@@ -120,12 +124,21 @@ providers:
     endpoint: foobar
     token: foobar
     certAuthFilePath: foobar
-    disablePassHostHeaders: true
+    namespaces:
+    - foobar
+    - foobar
+    allowCrossNamespace: true
+    labelSelector: foobar
+    ingressClass: foobar
+    throttleDuration: 42s
+  kubernetesGateway:
+    endpoint: foobar
+    token: foobar
+    certAuthFilePath: foobar
     namespaces:
     - foobar
     - foobar
     labelSelector: foobar
-    ingressClass: foobar
     throttleDuration: 42s
   rest:
     insecure: true
@@ -147,6 +160,8 @@ providers:
     cache: true
     exposedByDefault: true
     defaultRule: foobar
+    namespace: foobar
+    watch: true
     endpoint:
       address: foobar
       scheme: foobar
@@ -181,6 +196,8 @@ providers:
     - foobar
     username: foobar
     password: foobar
+    namespace: foobar
+    token: foobar
     tls:
       ca: foobar
       caOptional: true
@@ -194,6 +211,8 @@ providers:
     - foobar
     username: foobar
     password: foobar
+    namespace: foobar
+    token: foobar
     tls:
       ca: foobar
       caOptional: true
@@ -207,6 +226,8 @@ providers:
     - foobar
     username: foobar
     password: foobar
+    namespace: foobar
+    token: foobar
     tls:
       ca: foobar
       caOptional: true
@@ -220,6 +241,8 @@ providers:
     - foobar
     username: foobar
     password: foobar
+    namespace: foobar
+    token: foobar
     tls:
       ca: foobar
       caOptional: true
@@ -236,6 +259,9 @@ providers:
       cert: foobar
       key: foobar
       insecureSkipVerify: true
+  plugin:
+    Descriptor0: {}
+    Descriptor1: {}
 api:
   insecure: true
   dashboard: true
@@ -246,6 +272,7 @@ metrics:
     - 42
     - 42
     addEntryPointsLabels: true
+    addRoutersLabels: true
     addServicesLabels: true
     entryPoint: foobar
     manualRouting: true
@@ -253,11 +280,14 @@ metrics:
     address: foobar
     pushInterval: 42
     addEntryPointsLabels: true
+    addRoutersLabels: true
     addServicesLabels: true
+    prefix: foobar
   statsD:
     address: foobar
     pushInterval: 42
     addEntryPointsLabels: true
+    addRoutersLabels: true
     addServicesLabels: true
     prefix: foobar
   influxDB:
@@ -269,9 +299,22 @@ metrics:
     username: foobar
     password: foobar
     addEntryPointsLabels: true
+    addRoutersLabels: true
     addServicesLabels: true
-pilot:
-  token: foobar
+    additionalLabels:
+      foobar: foobar
+  influxDB2:
+    address: foobar
+    token: foobar
+    pushInterval: 42s
+    org: foobar
+    bucket: foobar
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    additionalLabels:
+      foobar: foobar
+
 ping:
   entryPoint: foobar
   manualRouting: true
@@ -355,9 +398,13 @@ certificatesResolvers:
     acme:
       email: foobar
       caServer: foobar
+      certificatesDuration: 2160
       preferredChain: foobar
       storage: foobar
       keyType: foobar
+      eab:
+        kid: foobar
+        hmacEncoded: foobar
       dnsChallenge:
         provider: foobar
         delayBeforeCheck: 42
@@ -372,9 +419,13 @@ certificatesResolvers:
     acme:
       email: foobar
       caServer: foobar
+      certificatesDuration: 2160
       preferredChain: foobar
       storage: foobar
       keyType: foobar
+      eab:
+        kid: foobar
+        hmacEncoded: foobar
       dnsChallenge:
         provider: foobar
         delayBeforeCheck: 42
@@ -385,7 +436,12 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: foobar
       tlsChallenge: {}
+pilot:
+  token: foobar
+  dashboard: true
 experimental:
+  kubernetesGateway: true
+  http3: true
   plugins:
     Descriptor0:
       moduleName: foobar
@@ -393,6 +449,8 @@ experimental:
     Descriptor1:
       moduleName: foobar
       version: foobar
-  devPlugin:
-    goPath: foobar
-    moduleName: foobar
+  localPlugins:
+    Descriptor0:
+      moduleName: foobar
+    Descriptor1:
+      moduleName: foobar

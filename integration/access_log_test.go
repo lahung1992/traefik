@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -37,12 +36,7 @@ type accessLogValue struct {
 
 func (s *AccessLogSuite) SetUpSuite(c *check.C) {
 	s.createComposeProject(c, "access_log")
-	s.composeProject.Start(c)
-
-	s.composeProject.Container(c, "server0")
-	s.composeProject.Container(c, "server1")
-	s.composeProject.Container(c, "server2")
-	s.composeProject.Container(c, "server3")
+	s.composeUp(c)
 }
 
 func (s *AccessLogSuite) TearDownTest(c *check.C) {
@@ -58,7 +52,7 @@ func (s *AccessLogSuite) TestAccessLog(c *check.C) {
 	defer display(c)
 
 	defer func() {
-		traefikLog, err := ioutil.ReadFile(traefikTestLogFile)
+		traefikLog, err := os.ReadFile(traefikTestLogFile)
 		c.Assert(err, checker.IsNil)
 		log.WithoutContext().Info(string(traefikLog))
 	}()
@@ -123,7 +117,7 @@ func (s *AccessLogSuite) TestAccessLogAuthFrontend(c *check.C) {
 			code:       "200",
 			user:       "test",
 			routerName: "rt-authFrontend",
-			serviceURL: "http://172.17.0",
+			serviceURL: "http://172.31.42",
 		},
 	}
 
@@ -136,8 +130,6 @@ func (s *AccessLogSuite) TestAccessLogAuthFrontend(c *check.C) {
 	defer s.killCmd(cmd)
 
 	checkStatsForLogFile(c)
-
-	s.composeProject.Container(c, "authFrontend")
 
 	waitForTraefik(c, "authFrontend")
 
@@ -194,7 +186,7 @@ func (s *AccessLogSuite) TestAccessLogDigestAuthMiddleware(c *check.C) {
 			code:       "200",
 			user:       "test",
 			routerName: "rt-digestAuthMiddleware",
-			serviceURL: "http://172.17.0",
+			serviceURL: "http://172.31.42",
 		},
 	}
 
@@ -207,8 +199,6 @@ func (s *AccessLogSuite) TestAccessLogDigestAuthMiddleware(c *check.C) {
 	defer s.killCmd(cmd)
 
 	checkStatsForLogFile(c)
-
-	s.composeProject.Container(c, "digestAuthMiddleware")
 
 	waitForTraefik(c, "digestAuthMiddleware")
 
@@ -323,8 +313,6 @@ func (s *AccessLogSuite) TestAccessLogFrontendRedirect(c *check.C) {
 
 	checkStatsForLogFile(c)
 
-	s.composeProject.Container(c, "frontendRedirect")
-
 	waitForTraefik(c, "frontendRedirect")
 
 	// Verify Traefik started OK
@@ -375,8 +363,6 @@ func (s *AccessLogSuite) TestAccessLogRateLimit(c *check.C) {
 	defer s.killCmd(cmd)
 
 	checkStatsForLogFile(c)
-
-	s.composeProject.Container(c, "rateLimit")
 
 	waitForTraefik(c, "rateLimit")
 
@@ -472,8 +458,6 @@ func (s *AccessLogSuite) TestAccessLogFrontendWhitelist(c *check.C) {
 
 	checkStatsForLogFile(c)
 
-	s.composeProject.Container(c, "frontendWhitelist")
-
 	waitForTraefik(c, "frontendWhitelist")
 
 	// Verify Traefik started OK
@@ -505,7 +489,7 @@ func (s *AccessLogSuite) TestAccessLogAuthFrontendSuccess(c *check.C) {
 			code:       "200",
 			user:       "test",
 			routerName: "rt-authFrontend",
-			serviceURL: "http://172.17.0",
+			serviceURL: "http://172.31.42",
 		},
 	}
 
@@ -518,8 +502,6 @@ func (s *AccessLogSuite) TestAccessLogAuthFrontendSuccess(c *check.C) {
 	defer s.killCmd(cmd)
 
 	checkStatsForLogFile(c)
-
-	s.composeProject.Container(c, "authFrontend")
 
 	waitForTraefik(c, "authFrontend")
 
@@ -545,11 +527,10 @@ func (s *AccessLogSuite) TestAccessLogAuthFrontendSuccess(c *check.C) {
 }
 
 func checkNoOtherTraefikProblems(c *check.C) {
-	traefikLog, err := ioutil.ReadFile(traefikTestLogFile)
+	traefikLog, err := os.ReadFile(traefikTestLogFile)
 	c.Assert(err, checker.IsNil)
 	if len(traefikLog) > 0 {
 		fmt.Printf("%s\n", string(traefikLog))
-		c.Assert(traefikLog, checker.HasLen, 0)
 	}
 }
 
@@ -583,7 +564,7 @@ func checkAccessLogExactValuesOutput(c *check.C, values []accessLogValue) int {
 }
 
 func extractLines(c *check.C) []string {
-	accessLog, err := ioutil.ReadFile(traefikTestAccessLogFile)
+	accessLog, err := os.ReadFile(traefikTestAccessLogFile)
 	c.Assert(err, checker.IsNil)
 
 	lines := strings.Split(string(accessLog), "\n")
@@ -613,11 +594,10 @@ func ensureWorkingDirectoryIsClean() {
 }
 
 func checkTraefikStarted(c *check.C) []byte {
-	traefikLog, err := ioutil.ReadFile(traefikTestLogFile)
+	traefikLog, err := os.ReadFile(traefikTestLogFile)
 	c.Assert(err, checker.IsNil)
 	if len(traefikLog) > 0 {
 		fmt.Printf("%s\n", string(traefikLog))
-		c.Assert(traefikLog, checker.HasLen, 0)
 	}
 	return traefikLog
 }
@@ -663,7 +643,7 @@ func waitForTraefik(c *check.C, containerName string) {
 func displayTraefikLogFile(c *check.C, path string) {
 	if c.Failed() {
 		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			content, errRead := ioutil.ReadFile(path)
+			content, errRead := os.ReadFile(path)
 			fmt.Printf("%s: Traefik logs: \n", c.TestName())
 			if errRead == nil {
 				fmt.Println(content)

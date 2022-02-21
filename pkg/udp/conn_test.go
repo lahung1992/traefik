@@ -1,8 +1,11 @@
 package udp
 
 import (
+	"crypto/rand"
+	"errors"
 	"io"
 	"net"
+	"runtime"
 	"testing"
 	"time"
 
@@ -14,7 +17,7 @@ func TestConsecutiveWrites(t *testing.T) {
 	addr, err := net.ResolveUDPAddr("udp", ":0")
 	require.NoError(t, err)
 
-	ln, err := Listen("udp", addr)
+	ln, err := Listen("udp", addr, 3*time.Second)
 	require.NoError(t, err)
 	defer func() {
 		err := ln.Close()
@@ -24,7 +27,7 @@ func TestConsecutiveWrites(t *testing.T) {
 	go func() {
 		for {
 			conn, err := ln.Accept()
-			if err == errClosedListener {
+			if errors.Is(err, errClosedListener) {
 				return
 			}
 			require.NoError(t, err)
@@ -76,7 +79,7 @@ func TestListenNotBlocking(t *testing.T) {
 
 	require.NoError(t, err)
 
-	ln, err := Listen("udp", addr)
+	ln, err := Listen("udp", addr, 3*time.Second)
 	require.NoError(t, err)
 	defer func() {
 		err := ln.Close()
@@ -86,7 +89,7 @@ func TestListenNotBlocking(t *testing.T) {
 	go func() {
 		for {
 			conn, err := ln.Accept()
-			if err == errClosedListener {
+			if errors.Is(err, errClosedListener) {
 				return
 			}
 			require.NoError(t, err)
@@ -161,6 +164,14 @@ func TestListenNotBlocking(t *testing.T) {
 	}
 }
 
+func TestListenWithZeroTimeout(t *testing.T) {
+	addr, err := net.ResolveUDPAddr("udp", ":0")
+	require.NoError(t, err)
+
+	_, err = Listen("udp", addr, 0)
+	assert.Error(t, err)
+}
+
 func TestTimeoutWithRead(t *testing.T) {
 	testTimeout(t, true)
 }
@@ -170,10 +181,12 @@ func TestTimeoutWithoutRead(t *testing.T) {
 }
 
 func testTimeout(t *testing.T, withRead bool) {
+	t.Helper()
+
 	addr, err := net.ResolveUDPAddr("udp", ":0")
 	require.NoError(t, err)
 
-	ln, err := Listen("udp", addr)
+	ln, err := Listen("udp", addr, 3*time.Second)
 	require.NoError(t, err)
 	defer func() {
 		err := ln.Close()
@@ -183,7 +196,7 @@ func testTimeout(t *testing.T, withRead bool) {
 	go func() {
 		for {
 			conn, err := ln.Accept()
-			if err == errClosedListener {
+			if errors.Is(err, errClosedListener) {
 				return
 			}
 			require.NoError(t, err)
@@ -209,7 +222,7 @@ func testTimeout(t *testing.T, withRead bool) {
 
 	assert.Equal(t, 10, len(ln.conns))
 
-	time.Sleep(4 * time.Second)
+	time.Sleep(ln.timeout + time.Second)
 	assert.Equal(t, 0, len(ln.conns))
 }
 
@@ -217,7 +230,7 @@ func TestShutdown(t *testing.T) {
 	addr, err := net.ResolveUDPAddr("udp", ":0")
 	require.NoError(t, err)
 
-	l, err := Listen("udp", addr)
+	l, err := Listen("udp", addr, 3*time.Second)
 	require.NoError(t, err)
 
 	go func() {
@@ -306,11 +319,68 @@ func TestShutdown(t *testing.T) {
 	}
 }
 
+func TestReadLoopMaxDataSize(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		// sudo sysctl -w net.inet.udp.maxdgram=65507
+		t.Skip("Skip test on darwin as the maximum dgram size is set to 9216 bytes by default")
+	}
+
+	// Theoretical maximum size of data in a UDP datagram.
+	// 65535 − 8 (UDP header) − 20 (IP header).
+	dataSize := 65507
+
+	doneCh := make(chan struct{})
+
+	addr, err := net.ResolveUDPAddr("udp", ":0")
+	require.NoError(t, err)
+
+	l, err := Listen("udp", addr, 3*time.Second)
+	require.NoError(t, err)
+
+	defer func() {
+		err := l.Close()
+		require.NoError(t, err)
+	}()
+
+	go func() {
+		defer close(doneCh)
+
+		conn, err := l.Accept()
+		require.NoError(t, err)
+
+		buffer := make([]byte, dataSize)
+
+		n, err := conn.Read(buffer)
+		require.NoError(t, err)
+
+		assert.Equal(t, dataSize, n)
+	}()
+
+	c, err := net.Dial("udp", l.Addr().String())
+	require.NoError(t, err)
+
+	data := make([]byte, dataSize)
+
+	_, err = rand.Read(data)
+	require.NoError(t, err)
+
+	_, err = c.Write(data)
+	require.NoError(t, err)
+
+	select {
+	case <-doneCh:
+	case <-time.Tick(5 * time.Second):
+		t.Fatal("Timeout waiting for datagram read")
+	}
+}
+
 // requireEcho tests that the conn session is live and functional,
 // by writing data through it, and expecting the same data as a response when reading on it.
 // It fatals if the read blocks longer than timeout,
 // which is useful to detect regressions that would make a test wait forever.
 func requireEcho(t *testing.T, data string, conn io.ReadWriter, timeout time.Duration) {
+	t.Helper()
+
 	_, err := conn.Write([]byte(data))
 	require.NoError(t, err)
 

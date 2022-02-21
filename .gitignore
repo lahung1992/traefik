@@ -7,7 +7,6 @@
 /webui/.tmp/
 /site/
 /docs/site/
-/static/
 /autogen/
 /traefik
 /traefik.toml
@@ -17,3 +16,5 @@
 cover.out
 vendor/
 plugins-storage/
+plugins-local/
+traefik_changelog.md

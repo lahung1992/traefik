@@ -4,15 +4,19 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/http/httptrace"
+	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
 	"github.com/traefik/traefik/v2/pkg/middlewares"
+	"github.com/traefik/traefik/v2/pkg/safe"
 	"github.com/traefik/traefik/v2/pkg/tracing"
 )
 
@@ -36,10 +40,11 @@ type Listeners []Listener
 
 // retry is a middleware that retries requests.
 type retry struct {
-	attempts int
-	next     http.Handler
-	listener Listener
-	name     string
+	attempts        int
+	initialInterval time.Duration
+	next            http.Handler
+	listener        Listener
+	name            string
 }
 
 // New returns a new retry middleware.
@@ -51,10 +56,11 @@ func New(ctx context.Context, next http.Handler, config dynamic.Retry, listener 
 	}
 
 	return &retry{
-		attempts: config.Attempts,
-		next:     next,
-		listener: listener,
-		name:     name,
+		attempts:        config.Attempts,
+		initialInterval: time.Duration(config.InitialInterval),
+		next:            next,
+		listener:        listener,
+		name:            name,
 	}, nil
 }
 
@@ -63,16 +69,21 @@ func (r *retry) GetTracingInformation() (string, ext.SpanKindEnum) {
 }
 
 func (r *retry) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	// if we might make multiple attempts, swap the body for an ioutil.NopCloser
-	// cf https://github.com/traefik/traefik/issues/1008
-	if r.attempts > 1 {
-		body := req.Body
-		defer body.Close()
-		req.Body = ioutil.NopCloser(body)
+	if r.attempts == 1 {
+		r.next.ServeHTTP(rw, req)
+		return
 	}
 
+	closableBody := req.Body
+	defer closableBody.Close()
+
+	// if we might make multiple attempts, swap the body for an io.NopCloser
+	// cf https://github.com/traefik/traefik/issues/1008
+	req.Body = io.NopCloser(closableBody)
+
 	attempts := 1
-	for {
+
+	operation := func() error {
 		shouldRetry := attempts < r.attempts
 		retryResponseWriter := newResponseWriter(rw, shouldRetry)
 
@@ -90,16 +101,46 @@ func (r *retry) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		r.next.ServeHTTP(retryResponseWriter, req.WithContext(newCtx))
 
 		if !retryResponseWriter.ShouldRetry() {
-			break
+			return nil
 		}
 
 		attempts++
 
+		return fmt.Errorf("attempt %d failed", attempts-1)
+	}
+
+	backOff := backoff.WithContext(r.newBackOff(), req.Context())
+
+	notify := func(err error, d time.Duration) {
 		log.FromContext(middlewares.GetLoggerCtx(req.Context(), r.name, typeName)).
 			Debugf("New attempt %d for request: %v", attempts, req.URL)
 
 		r.listener.Retried(req, attempts)
 	}
+
+	err := backoff.RetryNotify(safe.OperationWithRecover(operation), backOff, notify)
+	if err != nil {
+		log.FromContext(middlewares.GetLoggerCtx(req.Context(), r.name, typeName)).
+			Debugf("Final retry attempt failed: %v", err.Error())
+	}
+}
+
+func (r *retry) newBackOff() backoff.BackOff {
+	if r.attempts < 2 || r.initialInterval <= 0 {
+		return &backoff.ZeroBackOff{}
+	}
+
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = r.initialInterval
+
+	// calculate the multiplier for the given number of attempts
+	// so that applying the multiplier for the given number of attempts will not exceed 2 times the initial interval
+	// it allows to control the progression along the attempts
+	b.Multiplier = math.Pow(2, 1/float64(r.attempts-1))
+
+	// according to docs, b.Reset() must be called before using
+	b.Reset()
+	return b
 }
 
 // Retried exists to implement the Listener interface. It calls Retried on each of its slice entries.

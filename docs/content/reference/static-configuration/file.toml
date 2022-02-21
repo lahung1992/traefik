@@ -28,6 +28,10 @@
     [entryPoints.EntryPoint0.forwardedHeaders]
       insecure = true
       trustedIPs = ["foobar", "foobar"]
+    [entryPoints.EntryPoint0.udp]
+      timeout = 42
+    [entryPoints.EntryPoint0.http3]
+      advertisedPort = 42
     [entryPoints.EntryPoint0.http]
       middlewares = ["foobar", "foobar"]
       [entryPoints.EntryPoint0.http.redirections]
@@ -99,11 +103,11 @@
     endpoint = "foobar"
     token = "foobar"
     certAuthFilePath = "foobar"
-    disablePassHostHeaders = true
     namespaces = ["foobar", "foobar"]
     labelSelector = "foobar"
     ingressClass = "foobar"
-    throttleDuration = "10s"
+    throttleDuration = "42s"
+    allowEmptyServices = true
     [providers.kubernetesIngress.ingressEndpoint]
       ip = "foobar"
       hostname = "foobar"
@@ -112,10 +116,17 @@
     endpoint = "foobar"
     token = "foobar"
     certAuthFilePath = "foobar"
-    disablePassHostHeaders = true
     namespaces = ["foobar", "foobar"]
+    allowCrossNamespace = true
     labelSelector = "foobar"
     ingressClass = "foobar"
+    throttleDuration = 42
+  [providers.kubernetesGateway]
+    endpoint = "foobar"
+    token = "foobar"
+    certAuthFilePath = "foobar"
+    namespaces = ["foobar", "foobar"]
+    labelSelector = "foobar"
     throttleDuration = 42
   [providers.rest]
     insecure = true
@@ -137,6 +148,8 @@
     cache = true
     exposedByDefault = true
     defaultRule = "foobar"
+    namespace = "foobar"
+    watch = true
     [providers.consulCatalog.endpoint]
       address = "foobar"
       scheme = "foobar"
@@ -167,6 +180,8 @@
     endpoints = ["foobar", "foobar"]
     username = "foobar"
     password = "foobar"
+    namespace = "foobar"
+    token = "foobar"
     [providers.consul.tls]
       ca = "foobar"
       caOptional = true
@@ -178,6 +193,8 @@
     endpoints = ["foobar", "foobar"]
     username = "foobar"
     password = "foobar"
+    namespace = "foobar"
+    token = "foobar"
     [providers.etcd.tls]
       ca = "foobar"
       caOptional = true
@@ -189,6 +206,8 @@
     endpoints = ["foobar", "foobar"]
     username = "foobar"
     password = "foobar"
+    namespace = "foobar"
+    token = "foobar"
     [providers.zooKeeper.tls]
       ca = "foobar"
       caOptional = true
@@ -200,6 +219,8 @@
     endpoints = ["foobar", "foobar"]
     username = "foobar"
     password = "foobar"
+    namespace = "foobar"
+    token = "foobar"
     [providers.redis.tls]
       ca = "foobar"
       caOptional = true
@@ -216,6 +237,9 @@
       cert = "foobar"
       key = "foobar"
       insecureSkipVerify = true
+  [providers.plugin]
+    [providers.plugin.Descriptor0]
+    [providers.plugin.Descriptor1]
 
 [api]
   insecure = true
@@ -226,6 +250,7 @@
   [metrics.prometheus]
     buckets = [42.0, 42.0]
     addEntryPointsLabels = true
+    addRoutersLabels = true
     addServicesLabels = true
     entryPoint = "foobar"
     manualRouting = true
@@ -233,11 +258,14 @@
     address = "foobar"
     pushInterval = "42s"
     addEntryPointsLabels = true
+    addRoutersLabels = true
     addServicesLabels = true
+    prefix = "foobar"
   [metrics.statsD]
     address = "foobar"
     pushInterval = "42s"
     addEntryPointsLabels = true
+    addRoutersLabels = true
     addServicesLabels = true
     prefix = "foobar"
   [metrics.influxDB]
@@ -249,10 +277,21 @@
     username = "foobar"
     password = "foobar"
     addEntryPointsLabels = true
+    addRoutersLabels = true
     addServicesLabels = true
-
-[pilot]
-  token = "foobar"
+    [metrics.influxDB.additionalLabels]
+      foobar = "foobar"
+  [metrics.influxDB2]
+    address = "foobar"
+    token = "foobar"
+    pushInterval = "42s"
+    org = "foobar"
+    bucket = "foobar"
+    addEntryPointsLabels = true
+    addRoutersLabels = true
+    addServicesLabels = true
+    [metrics.influxDB2.additionalLabels]
+      foobar = "foobar"
 
 [ping]
   entryPoint = "foobar"
@@ -340,9 +379,13 @@
     [certificatesResolvers.CertificateResolver0.acme]
       email = "foobar"
       caServer = "foobar"
+      certificatesDuration = 2160
       preferredChain = "foobar"
       storage = "foobar"
       keyType = "foobar"
+      [certificatesResolvers.CertificateResolver0.acme.eab]
+        kid = "foobar"
+        hmacEncoded = "foobar"
       [certificatesResolvers.CertificateResolver0.acme.dnsChallenge]
         provider = "foobar"
         delayBeforeCheck = 42
@@ -355,9 +398,13 @@
     [certificatesResolvers.CertificateResolver1.acme]
       email = "foobar"
       caServer = "foobar"
+      certificatesDuration = 2160
       preferredChain = "foobar"
       storage = "foobar"
       keyType = "foobar"
+      [certificatesResolvers.CertificateResolver1.acme.eab]
+        kid = "foobar"
+        hmacEncoded = "foobar"
       [certificatesResolvers.CertificateResolver1.acme.dnsChallenge]
         provider = "foobar"
         delayBeforeCheck = 42
@@ -367,7 +414,13 @@
         entryPoint = "foobar"
       [certificatesResolvers.CertificateResolver1.acme.tlsChallenge]
 
+[pilot]
+  token = "foobar"
+  dashboard = true
+
 [experimental]
+  kubernetesGateway = true
+  http3 = true
   [experimental.plugins]
     [experimental.plugins.Descriptor0]
       moduleName = "foobar"
@@ -375,6 +428,8 @@
     [experimental.plugins.Descriptor1]
       moduleName = "foobar"
       version = "foobar"
-  [experimental.devPlugin]
-    goPath = "foobar"
-    moduleName = "foobar"
+  [experimental.localPlugins]
+    [experimental.localPlugins.Descriptor0]
+      moduleName = "foobar"
+    [experimental.localPlugins.Descriptor1]
+      moduleName = "foobar"
