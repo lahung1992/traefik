@@ -13,7 +13,7 @@ require (
 	github.com/Shopify/sarama v1.23.1 // indirect
 	github.com/abbot/go-http-auth v0.0.0-00010101000000-000000000000
 	github.com/abronan/valkeyrie v0.0.0-20200127174252-ef4277a138cd
-	github.com/aws/aws-sdk-go v1.30.20
+	github.com/aws/aws-sdk-go v1.34.0
 	github.com/c0va23/go-proxyprotocol v0.9.1
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/containerd/containerd v1.3.2 // indirect
